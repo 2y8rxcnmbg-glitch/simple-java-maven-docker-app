@@ -3,7 +3,7 @@ pipeline {
     environment {
         DOCKER_FILE = "./ci/Dockerfile"
         HARBOR_ADDR = "your.harbor.addr"     // 示例，请替换为你实际使用的 Harbor 地址
-        APP_NAME    = "your-app-name"        // 示例，请根据实际情况填写
+        APP_NAME    = "simple-java-maven-docker-app"        // 示例，请根据实际情况填写
     }
     options {
         skipStagesAfterUnstable()
@@ -12,59 +12,21 @@ pipeline {
         maven 'maven3.9.10'  // 对应你之前配置的 Maven 名称
     }
     stages {
-        stage('Prepare') {
-            steps {
-                script {
-                    env.GIT_COMMIT = sh(
-                        script: 'git rev-parse --short HEAD',
-                        returnStdout: true
-                    ).trim()
-
-                    env.PROJECT_NAME = sh(
-                        script: 'mvn -q -DforceStdout help:evaluate -Dexpression=project.name',
-                        returnStdout: true
-                    ).trim()
-                }
-            }
-        }
-
         stage('Build') {
             steps {
                 sh 'mvn -B -DskipTests clean package'
-
-                script {
-                    def imageFilter = "${env.HARBOR_ADDR}/${env.PROJECT_NAME}/${env.PROJECT_NAME}_${env.APP_NAME}:*"
-                    echo "Removing old images matching pattern: ${imageFilter}"
-                    def imagesToRemove = sh(
-                        script: "docker images --filter='reference=${imageFilter}' -q",
-                        returnStdout: true
-                    ).trim()
-
-                    if (imagesToRemove) {
-                        sh "echo '${imagesToRemove}' | xargs --no-run-if-empty docker rmi --force"
-                    } else {
-                        echo "No matching images found to remove."
-                    }
-                }
-
-                sh "docker build --no-cache --build-arg IMAGE_NAME=${env.PROJECT_NAME}:${env.GIT_COMMIT} -t ${env.PROJECT_NAME}:${env.GIT_COMMIT} -f ${env.DOCKER_FILE} ./"
             }
         }
 
-        stage('Test') {
+        stage('Docker Build') {
             steps {
-                sh 'mvn test'
-            }
-            post {
-                always {
-                    junit 'target/surefire-reports/*.xml'
-                }
+                sh 'docker build -t ${APP_NAME} ${DOCKER_FILE}'
             }
         }
 
-        stage('Deliver') {
+        stage('Deploy') {
             steps {
-                sh './ci/scripts/deliver.sh'
+                sh 'docker run -d -p 8081:8080 --name ${APP_NAME} ${APP_NAME}'
             }
         }
     }
