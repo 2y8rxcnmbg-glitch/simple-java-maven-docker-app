@@ -20,7 +20,8 @@ pipeline {
 
         stage('Docker Build') {
             steps {
-                sh 'docker build -t ${APP_NAME} ${DOCKER_FILE}'
+//                 sh 'docker build -t ${APP_NAME} ${DOCKER_FILE}'
+                sh 'docker build -t ${APP_NAME} .'
             }
         }
 
