@@ -1,4 +1,4 @@
-package com.mycompany.app.simplejavamavendockerapp;
+package com.mycompany.app;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
