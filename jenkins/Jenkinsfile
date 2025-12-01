@@ -1,0 +1,32 @@
+pipeline {
+    agent any
+    options {
+        skipStagesAfterUnstable()
+    }
+    // 关联 Jenkins 中配置的 Maven 工具（名称需与 Global Tool Configuration 一致）
+    tools {
+        maven 'maven3.9.10'  // 对应你之前配置的 Maven 名称
+    }
+    stages {
+        stage('Build') {
+            steps {
+                sh 'mvn -B -DskipTests clean package'
+            }
+        }
+        stage('Test') {
+            steps {
+                sh 'mvn test'
+            }
+            post {
+                always {
+                    junit 'target/surefire-reports/*.xml'
+                }
+            }
+        }
+        stage('Deliver') { 
+            steps {
+                sh './jenkins/scripts/deliver.sh' 
+            }
+        }
+    }
+}
